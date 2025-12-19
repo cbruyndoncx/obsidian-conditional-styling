@@ -36,16 +36,13 @@ Note content here...
 
 ## Installation
 
-### Community Plugins
-1. Open Obsidian Settings → Community Plugins
-2. Disable "Safe mode"
-3. Browse for "Conditional Styling Plugin"
-4. Install and enable
+> **Note:** This plugin is not yet submitted to the official Obsidian Community Plugins registry. Only manual installation is available for now.
 
 ### Manual Installation
-1. Download the latest release
+1. Download the latest release from GitHub
 2. Extract to `YourVault/.obsidian/plugins/obsidian-conditional-styling/`
 3. Enable the plugin in Obsidian settings
+4. Check "Safe mode" is disabled in Community Plugins settings
 
 ## Development
 
