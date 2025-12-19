@@ -1,7 +1,7 @@
 {
-	"name": "obsidian-sample-plugin",
+	"name": "obsidian-conditional-styling",
 	"version": "1.0.0",
-	"description": "This is a sample plugin for Obsidian (https://obsidian.md)",
+	"description": "Visual distinction in file explorer based on frontmatter fields (share and status).",
 	"main": "main.js",
 	"type": "module",
 	"scripts": {

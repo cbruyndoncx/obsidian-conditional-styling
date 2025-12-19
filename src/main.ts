@@ -1,99 +1,85 @@
-import {App, Editor, MarkdownView, Modal, Notice, Plugin} from 'obsidian';
-import {DEFAULT_SETTINGS, MyPluginSettings, SampleSettingTab} from "./settings";
+import {App, Plugin, TFile, WorkspaceLeaf} from 'obsidian';
 
-// Remember to rename these classes and interfaces!
-
-export default class MyPlugin extends Plugin {
-	settings: MyPluginSettings;
-
+export default class ConditionalStylingPlugin extends Plugin {
 	async onload() {
-		await this.loadSettings();
-
-		// This creates an icon in the left ribbon.
-		this.addRibbonIcon('dice', 'Sample', (evt: MouseEvent) => {
-			// Called when the user clicks the icon.
-			new Notice('This is a notice!');
-		});
-
-		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
-		const statusBarItemEl = this.addStatusBarItem();
-		statusBarItemEl.setText('Status bar text');
-
-		// This adds a simple command that can be triggered anywhere
-		this.addCommand({
-			id: 'open-modal-simple',
-			name: 'Open modal (simple)',
-			callback: () => {
-				new SampleModal(this.app).open();
-			}
-		});
-		// This adds an editor command that can perform some operation on the current editor instance
-		this.addCommand({
-			id: 'replace-selected',
-			name: 'Replace selected content',
-			editorCallback: (editor: Editor, view: MarkdownView) => {
-				editor.replaceSelection('Sample editor command');
-			}
-		});
-		// This adds a complex command that can check whether the current state of the app allows execution of the command
-		this.addCommand({
-			id: 'open-modal-complex',
-			name: 'Open modal (complex)',
-			checkCallback: (checking: boolean) => {
-				// Conditions to check
-				const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
-				if (markdownView) {
-					// If checking is true, we're simply "checking" if the command can be run.
-					// If checking is false, then we want to actually perform the operation.
-					if (!checking) {
-						new SampleModal(this.app).open();
-					}
-
-					// This command will only show up in Command Palette when the check function returns true
-					return true;
+		// Initial styling of all files
+		this.updateAllFileStyling();
+		
+		// Listen for file changes
+		this.registerEvent(
+			this.app.vault.on('modify', (file) => {
+				if (file instanceof TFile && file.extension === 'md') {
+					this.updateFileStyling(file);
 				}
-				return false;
-			}
-		});
-
-		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new SampleSettingTab(this.app, this));
-
-		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
-		// Using this function will automatically remove the event listener when this plugin is disabled.
-		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-			new Notice("Click");
-		});
-
-		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
-		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
-
+			})
+		);
+		
+		// Listen for file opens/closes to refresh styling
+		this.registerEvent(
+			this.app.workspace.on('file-open', (file) => {
+				this.updateAllFileStyling();
+			})
+		);
 	}
 
 	onunload() {
+		this.removeAllStyling();
 	}
 
-	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData() as Partial<MyPluginSettings>);
+	updateAllFileStyling() {
+		const files = this.app.vault.getMarkdownFiles();
+		files.forEach(file => this.updateFileStyling(file));
 	}
 
-	async saveSettings() {
-		await this.saveData(this.settings);
-	}
-}
+	updateFileStyling(file: TFile) {
+		const frontmatter = this.app.metadataCache.getFileCache(file)?.frontmatter;
+		
+		// Get file explorer item
+		const fileItem = this.getFileExplorerItem(file.path);
+		if (!fileItem) return;
 
-class SampleModal extends Modal {
-	constructor(app: App) {
-		super(app);
+		// Remove existing styling classes
+		fileItem.classList.remove('conditional-share-bold', 'conditional-draft-italic');
+		
+		// Apply new styling based on frontmatter
+		const isShared = frontmatter?.share === true;
+		const isDraft = frontmatter?.status === 'DRAFT';
+		
+		if (isShared) {
+			fileItem.classList.add('conditional-share-bold');
+		}
+		
+		if (isDraft) {
+			fileItem.classList.add('conditional-draft-italic');
+		}
 	}
 
-	onOpen() {
-		let {contentEl} = this;
-		contentEl.setText('Woah!');
+	getFileExplorerItem(filePath: string): HTMLElement | null {
+		// Find the file explorer view
+		const fileExplorer = this.app.workspace.getLeavesOfType('file-explorer')[0];
+		if (!fileExplorer) return null;
+		
+		// Find the file item in the explorer
+		const fileItems = fileExplorer.view.containerEl.querySelectorAll('[data-path]');
+		for (let i = 0; i < fileItems.length; i++) {
+			const item = fileItems[i] as HTMLElement;
+			if (item.getAttribute('data-path') === filePath) {
+				// Find the actual title/span element within the file item
+				const titleEl = item.querySelector('.nav-file-title-content, .tree-item-self');
+				return titleEl as HTMLElement || item;
+			}
+		}
+		
+		return null;
 	}
 
-	onClose() {
-		const {contentEl} = this;
-		contentEl.empty();
+	removeAllStyling() {
+		const files = this.app.vault.getMarkdownFiles();
+		files.forEach(file => {
+			const fileItem = this.getFileExplorerItem(file.path);
+			if (fileItem) {
+				fileItem.classList.remove('conditional-share-bold', 'conditional-draft-italic');
+			}
+		});
 	}
 }

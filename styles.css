@@ -1,8 +1,17 @@
-/*
+/* Conditional Styling Plugin - Visual Indicators for File Explorer */
 
-This CSS file will be included with your plugin, and
-available in the app when your plugin is enabled.
+/* Files with share: true - Make them BOLD */
+.conditional-share-bold {
+	font-weight: bold !important;
+}
 
-If your plugin does not need CSS, delete this file.
+/* Files with status: DRAFT - Make them ITALICS */
+.conditional-draft-italic {
+	font-style: italic !important;
+}
 
-*/
+/* Both conditions present - BOLD + ITALICS (cumulative styling) */
+.conditional-share-bold.conditional-draft-italic {
+	font-weight: bold !important;
+	font-style: italic !important;
+}
